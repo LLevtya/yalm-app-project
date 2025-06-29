@@ -1,6 +1,5 @@
 console.log("✅ contentRoutes loaded");
 import express from "express";
-import Content from "../models/Article.js"; // from contentRoutes.js
 import DailyContent from "../models/DailyContent.js";
 import Quote from "../models/Quote.js";
 import Test from "../models/Test.js";
