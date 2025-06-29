@@ -18,7 +18,7 @@ app.use(cors());
 
 app.use("/api/auth", authRoutes);
 app.use("/api/content", contentRoutes);
-
+console.log("✅ contentRoutes mounted at /api/content");
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   connectDB();
