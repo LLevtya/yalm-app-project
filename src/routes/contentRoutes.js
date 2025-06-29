@@ -11,6 +11,15 @@ router.get('/test', (req, res) => {
   res.send('API is alive');
 });
 
+router.get("/", async (req, res) => {
+  try {
+    const articles = await Content.find({}, "title description type");
+    res.json(articles);
+  } catch (error) {
+    res.status(500).json({ message: "Could not fetch tests" });
+  }
+});
+
 router.get('/random', async (req, res) => {
   const count = parseInt(req.query.count) || 6;
 
