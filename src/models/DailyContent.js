@@ -3,7 +3,10 @@ import mongoose from "mongoose";
 const dailyContentSchema = new mongoose.Schema({
   date: { type: String, unique: true }, // Format: "YYYY-MM-DD"
   articles: { type: [Object], default: [] }, // Store array of article objects
-  quote: String,
+  quote: {
+  text: String,
+  author: String,
+},
   testId: mongoose.Schema.Types.ObjectId,
 });
 
