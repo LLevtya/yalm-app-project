@@ -11,9 +11,9 @@ const generateToken = (userId) => {
 
 router.post("/register", async (req, res) => {
   try {
-    const { email, username, password } = req.body;
+    const { name, email, username, password } = req.body;
 
-    if (!username || !email || !password) {
+    if (!name || !username || !email || !password) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
@@ -40,6 +40,7 @@ router.post("/register", async (req, res) => {
     const profileImage = `https://api.dicebear.com/9.x/thumbs/svg?seed=${username}`;
 
     const user = new User({
+      name,
       email,
       username,
       password,
@@ -54,6 +55,7 @@ router.post("/register", async (req, res) => {
       token,
       user: {
         id: user._id,
+        name: user.name,
         username: user.username,
         email: user.email,
         profileImage: user.profileImage,
@@ -86,6 +88,7 @@ router.post("/login", async (req, res) => {
       token,
       user: {
         id: user._id,
+        name: user.name,
         username: user.username,
         email: user.email,
         profileImage: user.profileImage,
