@@ -26,22 +26,38 @@ router.get('/random', async (req, res) => {
 // Get daily articles, quote, and testId
 router.get('/daily', async (req, res) => {
   try {
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const today = new Date().toISOString().split('T')[0];
 
+    // Check if daily content already exists
     let dailyEntry = await DailyContent.findOne({ date: today });
     if (dailyEntry) {
-      return res.status(200).json(dailyEntry);
+      return res.status(200).json(dailyEntry); // Return full content
     }
 
-    // Generate if missing
-    const randomArticles = await Content.aggregate([{ $sample: { size: 6 } }]);
+    // Get random articles
+    const articles = await Content.aggregate([{ $sample: { size: 6 } }]);
 
-    dailyEntry = new DailyContent({ date: today, articles: randomArticles });
+    // Get random quote
+    const quoteResult = await Quote.aggregate([{ $sample: { size: 1 } }]);
+    const quote = quoteResult[0]?.text || "No quote available";
+
+    // Get random test
+    const testResult = await Test.aggregate([{ $sample: { size: 1 } }]);
+    const testId = testResult[0]?._id || null;
+
+    // Create new daily entry
+    dailyEntry = new DailyContent({
+      date: today,
+      articles,
+      quote,
+      testId
+    });
+
     await dailyEntry.save();
-
     res.status(200).json(dailyEntry);
+
   } catch (error) {
-    console.error("Error fetching daily articles:", error);
+    console.error("❌ Error generating daily content:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
