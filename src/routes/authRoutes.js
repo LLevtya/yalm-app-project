@@ -1,7 +1,7 @@
 import express from "express";
-import User from "../models/User.js";
 import jwt from "jsonwebtoken";
-import authenticate from "../middleware/authenticate.js";
+import User from "../models/User.js";
+import protectRoute from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
@@ -98,8 +98,10 @@ router.post("/login", async (req, res) => {
   }
 });
 
-router.get("/me", authenticate, (req, res) => {
+// Get current user
+router.get("/me", protectRoute, (req, res) => {
   res.json(req.user);
 });
+
 
 export default router;
