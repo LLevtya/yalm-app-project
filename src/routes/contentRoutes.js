@@ -41,7 +41,8 @@ router.get('/daily', async (req, res) => {
 
     // Get random quote
     const quoteResult = await Quote.aggregate([{ $sample: { size: 1 } }]);
-    const quote = quoteResult[0]?.text || "No quote available";
+    const quote = quoteResult[0] || { text: "No quote available", author: "Unknown" };
+
 
     // Get random test
     const testResult = await Test.aggregate([{ $sample: { size: 1 } }]);
