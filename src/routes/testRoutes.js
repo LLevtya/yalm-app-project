@@ -15,7 +15,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // GET all available tests
-router.get("/", async (req, res) => {
+router.get("/alltest", async (req, res) => {
   try {
     const tests = await Test.find({}, "title description type");
     res.json(tests);
