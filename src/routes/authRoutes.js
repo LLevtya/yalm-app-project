@@ -97,4 +97,8 @@ router.post("/login", async (req, res) => {
   }
 });
 
+router.get("/me", authenticate, (req, res) => {
+  res.json(req.user);
+});
+
 export default router;
