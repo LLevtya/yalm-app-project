@@ -23,27 +23,29 @@ router.get('/random', async (req, res) => {
 
 
 // New daily cached route
+// Get daily articles, quote, and testId
 router.get('/daily', async (req, res) => {
   try {
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
     let dailyEntry = await DailyContent.findOne({ date: today });
     if (dailyEntry) {
-      return res.status(200).json(dailyEntry.articles);
+      return res.status(200).json(dailyEntry);
     }
 
-    // Not found? Generate, save, and return
+    // Generate if missing
     const randomArticles = await Content.aggregate([{ $sample: { size: 6 } }]);
 
     dailyEntry = new DailyContent({ date: today, articles: randomArticles });
     await dailyEntry.save();
 
-    res.status(200).json(randomArticles);
+    res.status(200).json(dailyEntry);
   } catch (error) {
     console.error("Error fetching daily articles:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
+
 
 router.get('/:id', async (req, res) => {
   try {
