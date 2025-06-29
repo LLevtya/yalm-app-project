@@ -10,6 +10,7 @@ const testSchema = new mongoose.Schema({
   title: { type: String, required: true },
   description: { type: String },
   type: { type: String }, // "big-five", etc.
+  image: String,
   questions: [questionSchema]
 }, { timestamps: true });
 
