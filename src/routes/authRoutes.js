@@ -13,6 +13,15 @@ const generateToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: "15d" });
 };
 
+const sendResetCodeEmail = async (email, code) => {
+  const subject = "Reset Your Password";
+  const message = `Your 6-digit password reset code is: ${code}`;
+
+  // Assuming you're using your existing Mailtrap setup:
+  await sendPasswordResetEmail(email, message);
+};
+
+
 router.post("/register", async (req, res) => {
   try {
     const { name, email, username, password } = req.body;
