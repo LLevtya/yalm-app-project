@@ -1,51 +1,60 @@
 import express from "express";
 import Mood from "../models/Mood.js";
-import protectRoute from "../middleware/auth.middleware.js"; // make sure user is logged in
+import protectRoute from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
-// Helper to get date only (YYYY-MM-DD)
-const getDateOnly = (date = new Date()) => {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-};
-
-// POST /api/mood/log - Log today's mood
-router.post("/log", protectRoute, async (req, res) => {
-  const userId = req.user._id;
-  const { mood } = req.body;
-
-  if (!mood || mood < 1 || mood > 6) {
-    return res.status(400).json({ message: "Mood must be between 1 and 6" });
-  }
-
+// Check if mood logged today
+router.get("/check", protectRoute, async (req, res) => {
   try {
-    const today = getDateOnly();
+    const userId = req.user._id;
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
 
-    // Upsert mood for today
-    const moodEntry = await Mood.findOneAndUpdate(
-      { userId, date: today },
-      { mood, date: today },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
-    );
+    const moodToday = await Mood.findOne({
+      userId,
+      date: { $gte: todayStart },
+    });
 
-    res.status(200).json({ message: "Mood logged successfully", mood: moodEntry });
+    res.json({ needsMoodLog: !moodToday });
   } catch (error) {
-    console.error("Mood log error:", error);
+    console.error("Mood check error:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// GET /api/mood/check-today - Check if mood logged today
-router.get("/check-today", protectRoute, async (req, res) => {
-  const userId = req.user._id;
+// Submit mood
+router.post("/", protectRoute, async (req, res) => {
   try {
-    const today = getDateOnly();
+    const userId = req.user._id;
+    const { mood } = req.body;
 
-    const moodEntry = await Mood.findOne({ userId, date: today });
+    if (!["very sad", "sad", "neutral", "happy", "very happy", "excited"].includes(mood)) {
+      return res.status(400).json({ message: "Invalid mood value" });
+    }
 
-    res.status(200).json({ loggedToday: !!moodEntry });
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const existingMood = await Mood.findOne({
+      userId,
+      date: { $gte: todayStart },
+    });
+
+    if (existingMood) {
+      return res.status(400).json({ message: "Mood already logged today" });
+    }
+
+    const newMood = new Mood({
+      userId,
+      mood,
+      date: new Date(),
+    });
+
+    await newMood.save();
+    res.status(201).json({ message: "Mood logged successfully" });
   } catch (error) {
-    console.error("Mood check error:", error);
+    console.error("Mood submit error:", error);
     res.status(500).json({ message: "Server error" });
   }
 });

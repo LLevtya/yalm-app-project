@@ -25,7 +25,6 @@ app.use('/api/quotes', quoteRoutes);
 app.use("/api/tests", testRoutes);
 app.use("/api/mood", moodRoutes)
 
-console.log("✅ contentRoutes mounted at /api/content");
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   connectDB();
