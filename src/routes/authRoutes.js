@@ -181,9 +181,9 @@ router.post("/login", async (req, res) => {
 });
 
 // Get current user
-router.get("/me", protectRoute, (req, res) => {
-  res.json(req.user);
-});
+//router.get("/me", protectRoute, (req, res) => {
+//  res.json(req.user);
+//});
 
 
 export default router;
