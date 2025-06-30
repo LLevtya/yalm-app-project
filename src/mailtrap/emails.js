@@ -21,35 +21,13 @@ export const sendVerificationEmail = async (email, code) => {
   await transporter.sendMail(message);
 };
 
-export const sendPasswordResetEmail = async (email, link) => {
-  const message = {
-    from: "no-reply@yalm.app",
+export async function sendPasswordResetEmail(email, code) {
+  await transporter.sendMail({
+    from: '"Yalm Support" <support@yalm.app>',
     to: email,
-    subject: "Reset Your Password",
-    html: `<p>You requested a password reset. Click <a href="${link}">here</a> to reset it.</p>`
-  };
-
-  await transporter.sendMail(message);
+    subject: "Reset your password",
+    text: `Use this code to reset your password: ${code}`,
+    html: `<p>Use this code to reset your password:</p><h2>${code}</h2>`,
+  });
 };
 
-export const sendResetSuccessEmail = async (email) => {
-  const message = {
-    from: "no-reply@yalm.app",
-    to: email,
-    subject: "Password Reset Successful",
-    text: "Your password was successfully reset. If you didn't request this, please contact support."
-  };
-
-  await transporter.sendMail(message);
-};
-
-export const sendWelcomeEmail = async (email, name) => {
-  const message = {
-    from: "no-reply@yalm.app",
-    to: email,
-    subject: "Welcome to Yalm!",
-    html: `<h1>Hi ${name},</h1><p>Welcome to Yalm! We’re glad to have you onboard.</p>`
-  };
-
-  await transporter.sendMail(message);
-};

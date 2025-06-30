@@ -6,7 +6,6 @@ import {
 	sendPasswordResetEmail,
 	sendResetSuccessEmail,
 	sendVerificationEmail,
-	sendWelcomeEmail,
 } from "../mailtrap/emails.js";
 
 const router = express.Router();
@@ -140,6 +139,71 @@ router.post("/resend-verification", async (req, res) => {
   }
 });
 
+router.post("/request-password-reset", async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      // For security, pretend it's OK even if email is not registered
+      return res.status(200).json({ message: "Reset email sent if user exists" });
+    }
+
+    // Generate 6-digit reset code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Store it on user model
+    user.resetPasswordToken = code;
+    user.resetPasswordExpires = Date.now() + 1000 * 60 * 15; // 15 min
+    await user.save();
+
+    // Send email with the code
+    await sendPasswordResetEmail(user.email, code);
+
+    res.status(200).json({ message: "Reset code sent to email" });
+  } catch (err) {
+    console.error("Password reset error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
+router.post("/verify-reset-code", async (req, res) => {
+  const { email, code } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(400).json({ message: "User not found" });
+    }
+
+    if (!user.resetPasswordToken || !user.resetPasswordExpires) {
+      return res.status(400).json({ message: "No password reset requested" });
+    }
+
+    const isCodeValid = user.resetPasswordToken === code;
+    const isCodeExpired = Date.now() > user.resetPasswordExpires;
+
+    if (!isCodeValid) {
+      return res.status(400).json({ message: "Invalid reset code" });
+    }
+
+    if (isCodeExpired) {
+      return res.status(400).json({ message: "Reset code expired" });
+    }
+
+    // Code is valid and not expired
+    res.status(200).json({ message: "Reset code verified" });
+  } catch (error) {
+    console.error("Verify reset code error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 
 router.post("/login", async (req, res) => {
@@ -203,28 +267,27 @@ router.post("/forgot-password", async (req, res) => {
 
 // POST /api/auth/reset-password
 router.post("/reset-password", async (req, res) => {
-  const { email, code, newPassword } = req.body;
+  const { email, newPassword } = req.body;
+
+  if (!email || !newPassword)
+    return res.status(400).json({ message: "Email and new password are required" });
+
+  if (newPassword.length < 6)
+    return res.status(400).json({ message: "Password must be at least 6 characters" });
 
   try {
     const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
 
-    if (!user || user.resetToken !== code || Date.now() > user.resetExpires) {
-      return res.status(400).json({ message: "Invalid or expired code" });
-    }
-
-    user.password = newPassword;
-    user.resetToken = undefined;
-    user.resetExpires = undefined;
+    user.password = newPassword; // Your User model should hash password on save
     await user.save();
 
-    await sendResetSuccessEmail(user.email);
     res.status(200).json({ message: "Password reset successful" });
-  } catch (err) {
-    console.error("Reset error:", err);
+  } catch (error) {
+    console.error("Reset password error:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
-
 
 
 //Get current user
