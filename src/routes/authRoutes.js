@@ -80,6 +80,7 @@ router.post("/register", async (req, res) => {
     });
   } catch (error) {
     console.log("Error in register route", error);
+    console.log("Stack trace:", error.stack);
     res.status(500).json({ message: "Internal server error" });
   }
 });
