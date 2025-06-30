@@ -4,7 +4,6 @@ import User from "../models/User.js";
 import protectRoute from "../middleware/auth.middleware.js";
 import {
 	sendPasswordResetEmail,
-	sendResetSuccessEmail,
 	sendVerificationEmail,
 } from "../mailtrap/emails.js";
 
