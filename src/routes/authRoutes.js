@@ -53,8 +53,8 @@ router.post("/register", async (req, res) => {
       username,
       password,
       profileImage,
+      isVerified: user.isVerified || false, // Ensure isVerified is set to false by default
       verificationToken,
-      isVerified: user.isVerified,
       verificationExpires: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
     });
 
@@ -72,6 +72,7 @@ router.post("/register", async (req, res) => {
         username: user.username,
         email: user.email,
         profileImage: user.profileImage,
+        isVerified: user.isVerified,
         createdAt: user.createdAt,
       },
     });
@@ -100,6 +101,7 @@ router.post("/verify-email", async (req, res) => {
     if (isCodeExpired)
       return res.status(400).json({ message: "Verification code expired" });
 
+    user.isVerified = true; // Set user as verified
     // Clear token after success
     user.verificationToken = undefined;
     user.verificationExpires = undefined;
