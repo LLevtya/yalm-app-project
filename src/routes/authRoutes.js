@@ -2,6 +2,12 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import protectRoute from "../middleware/auth.middleware.js";
+import {
+	sendPasswordResetEmail,
+	sendResetSuccessEmail,
+	sendVerificationEmail,
+	sendWelcomeEmail,
+} from "../mailtrap/emails.js";
 
 const router = express.Router();
 
@@ -36,6 +42,8 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ message: "Username already exists" });
     }
 
+    const verificationToken = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit verification code
+
     // get random avatar
     const profileImage = `https://api.dicebear.com/9.x/thumbs/svg?seed=${username}`;
 
@@ -45,9 +53,12 @@ router.post("/register", async (req, res) => {
       username,
       password,
       profileImage,
+      verificationToken,
+      verificationExpires: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
     });
 
     await user.save();
+    await sendVerificationEmail(user.email, user.name, verificationToken);
 
     const token = generateToken(user._id);
 
@@ -68,11 +79,68 @@ router.post("/register", async (req, res) => {
   }
 });
 
+router.post("/verify-email", async (req, res) => {
+  const { email, code } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user)
+      return res.status(400).json({ message: "User not found" });
+
+    if (!user.verificationToken || !user.verificationExpires)
+      return res.status(400).json({ message: "No verification requested" });
+
+    const isCodeValid = user.verificationToken === code;
+    const isCodeExpired = Date.now() > user.verificationExpires;
+
+    if (!isCodeValid)
+      return res.status(400).json({ message: "Invalid verification code" });
+
+    if (isCodeExpired)
+      return res.status(400).json({ message: "Verification code expired" });
+
+    // Clear token after success
+    user.verificationToken = undefined;
+    user.verificationExpires = undefined;
+    await user.save();
+
+    res.status(200).json({ message: "Email verified successfully" });
+  } catch (error) {
+    console.error("Verify error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// POST /api/auth/resend-verification
+router.post("/resend-verification", async (req, res) => {
+  const { email } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user)
+      return res.status(400).json({ message: "User not found" });
+
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    user.verificationToken = code;
+    user.verificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hrs
+    await user.save();
+
+    await sendVerificationEmail(user.email, code);
+
+    res.status(200).json({ message: "Verification code resent" });
+  } catch (error) {
+    console.error("Resend error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
+
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
     if (!email || !password) return res.status(400).json({ message: "All fields are required" });
+
+    
 
     // check if user exists
     const user = await User.findOne({ email });
@@ -82,6 +150,9 @@ router.post("/login", async (req, res) => {
     const isPasswordCorrect = await user.comparePassword(password);
     if (!isPasswordCorrect) return res.status(400).json({ message: "Invalid password" });
 
+    if (!user.isVerified) {
+  return res.status(403).json({ message: "Please verify your email before logging in." });
+}
     const token = generateToken(user._id);
 
     res.status(200).json({
