@@ -54,6 +54,7 @@ router.post("/register", async (req, res) => {
       password,
       profileImage,
       verificationToken,
+      isVerified: user.isVerified,
       verificationExpires: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
     });
 
