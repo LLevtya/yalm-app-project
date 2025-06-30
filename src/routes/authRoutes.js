@@ -31,7 +31,6 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ message: "Username should be at least 3 characters long" });
     }
 
-    // check if user already exists
     const existingEmail = await User.findOne({ email });
     if (existingEmail) {
       return res.status(400).json({ message: "Email already exists" });
@@ -43,26 +42,29 @@ router.post("/register", async (req, res) => {
     }
 
     const verificationToken = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit verification code
-
-    // get random avatar
     const profileImage = `https://api.dicebear.com/9.x/thumbs/svg?seed=${username}`;
 
+    // ✅ Declare user FIRST
     const user = new User({
       name,
       email,
       username,
       password,
       profileImage,
-      isVerified: user.isVerified || false, // Ensure isVerified is set to false by default
+      isVerified: false,
       verificationToken,
       verificationExpires: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
     });
 
+    // ✅ Save user
     await user.save();
+
+    // ✅ Now safe to send email
     await sendVerificationEmail(user.email, verificationToken);
 
-
-    const token = generateToken(user._id);
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "15d",
+    });
 
     res.status(201).json({
       token,
@@ -81,6 +83,7 @@ router.post("/register", async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
+
 
 router.post("/verify-email", async (req, res) => {
   const { email, code } = req.body;
