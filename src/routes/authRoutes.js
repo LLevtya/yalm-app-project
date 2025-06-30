@@ -232,12 +232,12 @@ router.post("/forgot-password", async (req, res) => {
     if (!user)
       return res.status(400).json({ message: "User not found" });
 
-    const resetToken = Math.floor(100000 + Math.random() * 900000).toString();
-    user.resetToken = resetToken;
-    user.resetTokenExpires = Date.now() + 3600000; // 1 hour
+    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+    user.resetCode = resetCode;
+    user.resetCodeExpires = Date.now() + 3600000; // 1 hour
     await user.save();
 
-    await sendPasswordResetEmail(user.email, resetToken);
+    await sendPasswordResetEmail(user.email, resetCode);
 
     res.status(200).json({ message: "Reset code sent to your email." });
   } catch (error) {
