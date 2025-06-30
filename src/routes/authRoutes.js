@@ -138,34 +138,24 @@ router.post("/resend-verification", async (req, res) => {
   }
 });
 
+// Request reset code
 router.post("/request-password-reset", async (req, res) => {
   const { email } = req.body;
-
   try {
-    if (!email) {
-      return res.status(400).json({ message: "Email is required" });
-    }
-
     const user = await User.findOne({ email });
-    if (!user) {
-      // For security, pretend it's OK even if email is not registered
-      return res.status(200).json({ message: "Reset email sent if user exists" });
-    }
+    if (!user) return res.status(400).json({ message: "User not found" });
 
-    // Generate 6-digit reset code
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-
-    // Store it on user model
-    user.resetPasswordToken = code;
-    user.resetPasswordExpires = Date.now() + 1000 * 60 * 15; // 15 min
+    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+    user.resetCode = resetCode;
+    user.resetCodeExpires = Date.now() + 15 * 60 * 1000; // 15 mins
     await user.save();
 
-    // Send email with the code
-    await sendPasswordResetEmail(user.email, code);
+    // Send the resetCode via email (adjust your email function)
+    await sendResetCodeEmail(user.email, resetCode);
 
-    res.status(200).json({ message: "Reset code sent to email" });
-  } catch (err) {
-    console.error("Password reset error:", err);
+    res.status(200).json({ message: "Reset code sent" });
+  } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -173,33 +163,15 @@ router.post("/request-password-reset", async (req, res) => {
 
 router.post("/verify-reset-code", async (req, res) => {
   const { email, code } = req.body;
-
   try {
     const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ message: "User not found" });
 
-    if (!user) {
-      return res.status(400).json({ message: "User not found" });
-    }
+    if (user.resetCode !== code) return res.status(400).json({ message: "Invalid code" });
+    if (Date.now() > user.resetCodeExpires) return res.status(400).json({ message: "Code expired" });
 
-    if (!user.resetPasswordToken || !user.resetPasswordExpires) {
-      return res.status(400).json({ message: "No password reset requested" });
-    }
-
-    const isCodeValid = user.resetPasswordToken === code;
-    const isCodeExpired = Date.now() > user.resetPasswordExpires;
-
-    if (!isCodeValid) {
-      return res.status(400).json({ message: "Invalid reset code" });
-    }
-
-    if (isCodeExpired) {
-      return res.status(400).json({ message: "Reset code expired" });
-    }
-
-    // Code is valid and not expired
-    res.status(200).json({ message: "Reset code verified" });
+    res.status(200).json({ message: "Code verified" });
   } catch (error) {
-    console.error("Verify reset code error:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -266,24 +238,21 @@ router.post("/forgot-password", async (req, res) => {
 
 // POST /api/auth/reset-password
 router.post("/reset-password", async (req, res) => {
-  const { email, newPassword } = req.body;
-
-  if (!email || !newPassword)
-    return res.status(400).json({ message: "Email and new password are required" });
-
-  if (newPassword.length < 6)
-    return res.status(400).json({ message: "Password must be at least 6 characters" });
-
+  const { email, code, newPassword } = req.body;
   try {
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) return res.status(400).json({ message: "User not found" });
 
-    user.password = newPassword; // Your User model should hash password on save
+    if (user.resetCode !== code) return res.status(400).json({ message: "Invalid code" });
+    if (Date.now() > user.resetCodeExpires) return res.status(400).json({ message: "Code expired" });
+
+    user.password = newPassword; // IMPORTANT: hash before saving in your User model's pre-save middleware
+    user.resetCode = undefined;
+    user.resetCodeExpires = undefined;
     await user.save();
 
     res.status(200).json({ message: "Password reset successful" });
   } catch (error) {
-    console.error("Reset password error:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
