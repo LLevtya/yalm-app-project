@@ -180,6 +180,53 @@ router.post("/login", async (req, res) => {
   }
 });
 
+// Send password reset email
+router.post("/forgot-password", async (req, res) => {
+  const { email } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user)
+      return res.status(400).json({ message: "User not found" });
+
+    const resetToken = Math.floor(100000 + Math.random() * 900000).toString();
+    user.resetToken = resetToken;
+    user.resetTokenExpires = Date.now() + 3600000; // 1 hour
+    await user.save();
+
+    await sendPasswordResetEmail(user.email, resetToken);
+
+    res.status(200).json({ message: "Reset code sent to your email." });
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// POST /api/auth/reset-password
+router.post("/reset-password", async (req, res) => {
+  const { email, code, newPassword } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+
+    if (!user || user.resetToken !== code || Date.now() > user.resetExpires) {
+      return res.status(400).json({ message: "Invalid or expired code" });
+    }
+
+    user.password = newPassword;
+    user.resetToken = undefined;
+    user.resetExpires = undefined;
+    await user.save();
+
+    await sendResetSuccessEmail(user.email);
+    res.status(200).json({ message: "Password reset successful" });
+  } catch (err) {
+    console.error("Reset error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
+
 //Get current user
 router.get("/me", protectRoute, (req, res) => {
   res.json(req.user);
