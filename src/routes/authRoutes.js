@@ -15,11 +15,10 @@ const generateToken = (userId) => {
 
 const sendResetCodeEmail = async (email, code) => {
   const subject = "Reset Your Password";
-  const message = `Your 6-digit password reset code is: ${code}`;
-
-  // Assuming you're using your existing Mailtrap setup:
-  await sendPasswordResetEmail(email, message);
+  const message = `Your 6-digit reset code is: ${code}`;
+  await sendPasswordResetEmail(email, message); // You already have this function
 };
+
 
 
 router.post("/register", async (req, res) => {
@@ -156,34 +155,37 @@ router.post("/request-password-reset", async (req, res) => {
 
     const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
     user.resetCode = resetCode;
-    user.resetCodeExpires = Date.now() + 15 * 60 * 1000; // 15 mins
+    user.resetCodeExpires = Date.now() + 15 * 60 * 1000; // 15 minutes
     await user.save();
 
-    // Send the resetCode via email (adjust your email function)
-    await sendResetCodeEmail(user.email, resetCode);
+    await sendResetCodeEmail(email, resetCode);
 
     res.status(200).json({ message: "Reset code sent" });
-  } catch (error) {
-    console.error(error);
+  } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
 });
+
 
 
 router.post("/verify-reset-code", async (req, res) => {
   const { email, code } = req.body;
   try {
     const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: "User not found" });
+    if (!user || !user.resetCode) return res.status(400).json({ message: "Invalid or expired code" });
 
-    if (user.resetCode !== code) return res.status(400).json({ message: "Invalid code" });
-    if (Date.now() > user.resetCodeExpires) return res.status(400).json({ message: "Code expired" });
+    const isExpired = Date.now() > user.resetCodeExpires;
+    const isCodeValid = user.resetCode === code;
+
+    if (!isCodeValid) return res.status(400).json({ message: "Invalid code" });
+    if (isExpired) return res.status(400).json({ message: "Code expired" });
 
     res.status(200).json({ message: "Code verified" });
-  } catch (error) {
+  } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
 });
+
 
 
 router.post("/login", async (req, res) => {
@@ -252,19 +254,23 @@ router.post("/reset-password", async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ message: "User not found" });
 
-    if (user.resetCode !== code) return res.status(400).json({ message: "Invalid code" });
-    if (Date.now() > user.resetCodeExpires) return res.status(400).json({ message: "Code expired" });
+    const isCodeValid = user.resetCode === code;
+    const isExpired = Date.now() > user.resetCodeExpires;
 
-    user.password = newPassword; // IMPORTANT: hash before saving in your User model's pre-save middleware
+    if (!isCodeValid) return res.status(400).json({ message: "Invalid code" });
+    if (isExpired) return res.status(400).json({ message: "Code expired" });
+
+    user.password = newPassword;
     user.resetCode = undefined;
     user.resetCodeExpires = undefined;
-    await user.save();
 
+    await user.save();
     res.status(200).json({ message: "Password reset successful" });
-  } catch (error) {
+  } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
 });
+
 
 
 //Get current user
