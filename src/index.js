@@ -7,6 +7,7 @@ import authRoutes from "./routes/authRoutes.js";
 import contentRoutes from "./routes/contentRoutes.js";
 import quoteRoutes from './routes/quoteRoutes.js';
 import testRoutes from "./routes/testRoutes.js";
+import moodRoutes from "./routes/moodRoutes.js"
 
 
 import { connectDB } from "./lib/db.js";
@@ -22,6 +23,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/content", contentRoutes);
 app.use('/api/quotes', quoteRoutes); 
 app.use("/api/tests", testRoutes);
+app.use("/api/mood", moodRoutes)
 
 console.log("✅ contentRoutes mounted at /api/content");
 app.listen(PORT, () => {
