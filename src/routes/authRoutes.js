@@ -58,7 +58,8 @@ router.post("/register", async (req, res) => {
     });
 
     await user.save();
-    await sendVerificationEmail(user.email, user.name, verificationToken);
+    await sendVerificationEmail(user.email, verificationToken);
+
 
     const token = generateToken(user._id);
 
