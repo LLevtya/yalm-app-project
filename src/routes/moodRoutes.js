@@ -4,29 +4,30 @@ import protectRoute from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
-// Allowed mood values - match frontend exactly!
+// Allowed moods that match frontend exactly
 const allowedMoods = ["angry", "upset", "sad", "neutral", "happy", "excited"];
 
-// Check if mood logged today
+// ✅ GET /api/mood/check-today → Has user logged today?
 router.get("/check-today", protectRoute, async (req, res) => {
   try {
     const userId = req.user._id;
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
 
-    const moodToday = await Mood.findOne({
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const existingMood = await Mood.findOne({
       userId,
-      date: { $gte: todayStart },
+      date: { $gte: startOfDay },
     });
 
-    res.json({ loggedToday: !!moodToday });
+    res.status(200).json({ loggedToday: !!existingMood });
   } catch (error) {
     console.error("Mood check error:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// Submit mood
+// ✅ POST /api/mood → Save mood
 router.post("/", protectRoute, async (req, res) => {
   try {
     const userId = req.user._id;
@@ -36,15 +37,15 @@ router.post("/", protectRoute, async (req, res) => {
       return res.status(400).json({ message: "Invalid mood value" });
     }
 
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
 
-    const existingMood = await Mood.findOne({
+    const alreadyLogged = await Mood.findOne({
       userId,
-      date: { $gte: todayStart },
+      date: { $gte: startOfDay },
     });
 
-    if (existingMood) {
+    if (alreadyLogged) {
       return res.status(400).json({ message: "Mood already logged today" });
     }
 
@@ -63,4 +64,5 @@ router.post("/", protectRoute, async (req, res) => {
 });
 
 export default router;
+
 
