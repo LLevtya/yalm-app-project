@@ -4,8 +4,11 @@ import protectRoute from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
+// Allowed mood values - match frontend exactly!
+const allowedMoods = ["angry", "upset", "sad", "neutral", "happy", "excited"];
+
 // Check if mood logged today
-router.get("/check", protectRoute, async (req, res) => {
+router.get("/check-today", protectRoute, async (req, res) => {
   try {
     const userId = req.user._id;
     const todayStart = new Date();
@@ -16,7 +19,7 @@ router.get("/check", protectRoute, async (req, res) => {
       date: { $gte: todayStart },
     });
 
-    res.json({ needsMoodLog: !moodToday });
+    res.json({ loggedToday: !!moodToday });
   } catch (error) {
     console.error("Mood check error:", error);
     res.status(500).json({ message: "Server error" });
@@ -29,7 +32,7 @@ router.post("/", protectRoute, async (req, res) => {
     const userId = req.user._id;
     const { mood } = req.body;
 
-    if (!["very sad", "sad", "neutral", "happy", "very happy", "excited"].includes(mood)) {
+    if (!allowedMoods.includes(mood)) {
       return res.status(400).json({ message: "Invalid mood value" });
     }
 
@@ -60,3 +63,4 @@ router.post("/", protectRoute, async (req, res) => {
 });
 
 export default router;
+
