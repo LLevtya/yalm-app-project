@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const moodSchema = new mongoose.Schema({
+const MoodSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
@@ -8,15 +8,13 @@ const moodSchema = new mongoose.Schema({
   },
   mood: {
     type: String,
+    enum: ["angry", "upset", "sad", "good", "happy", "spectacular"],
     required: true,
-    enum: ["angry", "upset", "sad", "neutral", "happy", "excited"],
   },
   date: {
     type: Date,
-    required: true,
     default: Date.now,
   },
 });
 
-const Mood = mongoose.model("Mood", moodSchema);
-export default Mood;
+export default mongoose.model("Mood", MoodSchema);

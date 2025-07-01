@@ -4,65 +4,65 @@ import protectRoute from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
-// Allowed moods that match frontend exactly
-const allowedMoods = ["angry", "upset", "sad", "neutral", "happy", "excited"];
-
-// ✅ GET /api/mood/check-today → Has user logged today?
+// Check if user has logged mood today
 router.get("/check-today", protectRoute, async (req, res) => {
   try {
     const userId = req.user._id;
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
 
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
 
-    const existingMood = await Mood.findOne({
+    const moodToday = await Mood.findOne({
       userId,
-      date: { $gte: startOfDay },
+      date: { $gte: todayStart, $lte: todayEnd },
     });
 
-    res.status(200).json({ loggedToday: !!existingMood });
+    res.status(200).json({ loggedToday: !!moodToday });
   } catch (error) {
     console.error("Mood check error:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// ✅ POST /api/mood → Save mood
+// Submit mood
 router.post("/", protectRoute, async (req, res) => {
   try {
     const userId = req.user._id;
     const { mood } = req.body;
 
+    const allowedMoods = ["angry", "upset", "sad", "good", "happy", "spectacular"];
     if (!allowedMoods.includes(mood)) {
       return res.status(400).json({ message: "Invalid mood value" });
     }
 
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
 
     const alreadyLogged = await Mood.findOne({
       userId,
-      date: { $gte: startOfDay },
+      date: { $gte: todayStart, $lte: todayEnd },
     });
 
     if (alreadyLogged) {
       return res.status(400).json({ message: "Mood already logged today" });
     }
 
-    const newMood = new Mood({
-      userId,
-      mood,
-      date: new Date(),
-    });
-
+    const newMood = new Mood({ userId, mood });
     await newMood.save();
+
     res.status(201).json({ message: "Mood logged successfully" });
   } catch (error) {
-    console.error("Mood submit error:", error);
+    console.error("Mood submission error:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
 
 export default router;
+
 
 

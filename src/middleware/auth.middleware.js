@@ -3,24 +3,26 @@ import User from "../models/User.js";
 
 const protectRoute = async (req, res, next) => {
   try {
-    const authHeader = req.header("Authorization");
+    const authHeader = req.headers.authorization;
+
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({ message: "No token, authorization denied" });
+      return res.status(401).json({ message: "No token provided" });
     }
 
-    const token = authHeader.replace("Bearer ", "");
+    const token = authHeader.split(" ")[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     const user = await User.findById(decoded.userId).select("-password");
-    if (!user) return res.status(401).json({ message: "Token is not valid" });
+    if (!user) return res.status(401).json({ message: "User not found" });
 
     req.user = user;
     next();
-  } catch (error) {
-    console.error("Authentication error:", error.message);
-    res.status(401).json({ message: "Token is not valid" });
+  } catch (err) {
+    console.error("Auth error:", err);
+    res.status(401).json({ message: "Invalid token" });
   }
 };
 
 export default protectRoute;
+
 
