@@ -26,6 +26,25 @@ router.get("/check-today", protectRoute, async (req, res) => {
   }
 });
 
+// Get recent mood history (last 7 entries)
+router.get("/history", protectRoute, async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // Fetch last 7 moods sorted descending by date
+    const history = await Mood.find({ userId })
+      .sort({ date: -1 })
+      .limit(7)
+      .select("mood date -_id"); // only return mood and date fields
+
+    res.json({ history });
+  } catch (error) {
+    console.error("Mood history error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
 // Submit mood
 router.post("/", protectRoute, async (req, res) => {
   try {
